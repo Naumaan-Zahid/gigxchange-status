@@ -99,23 +99,38 @@
   }, true);
 
   // Hero beacon auto-flip. Snapshot the published status once, swap to a down state while the
-  // site is unreachable, restore the real published status on recovery.
+  // site is unreachable, restore the real published status on recovery. gigxchange.app fronts
+  // BOTH the public website and the app, so if the domain is unreachable both are down.
   var widget = document.querySelector('.st-widget');
   var label = widget && widget.querySelector('.st-label-big');
   var updated = widget && widget.querySelector('.st-updated');
+  var strip = widget && widget.querySelector('.st-strip');
   var snap = null;
   function goOffline() {
     document.body.classList.add('gx-offline');
     if (!widget) return;
-    if (!snap) snap = { cls: widget.className, label: label ? label.innerHTML : '', updated: updated ? updated.innerHTML : '' };
+    if (!snap) snap = { cls: widget.className, label: label ? label.innerHTML : '', updated: updated ? updated.innerHTML : '', strip: strip ? strip.innerHTML : '' };
     widget.classList.remove('ok', 'issues');
     widget.classList.add('down');
-    if (label) label.textContent = "We can't reach GigXchange";
+    if (label) label.textContent = 'Website & app are unavailable';
     if (updated) updated.textContent = 'Auto-detected from your browser just now - the team is on it';
+    // flip the Website + App chips red (Payments/Emails stay as published — the probe can't see them)
+    if (strip) strip.querySelectorAll('.sb-badge').forEach(function (b) {
+      var t = b.textContent || '';
+      if (t.indexOf('Website') > -1 || t.indexOf('App') > -1) {
+        b.classList.remove('sb-badge-ice', 'st-badge-warn');
+        b.classList.add('st-badge-down');
+      }
+    });
   }
   function goOnline() {
     document.body.classList.remove('gx-offline');
-    if (widget && snap) { widget.className = snap.cls; if (label) label.innerHTML = snap.label; if (updated) updated.innerHTML = snap.updated; }
+    if (widget && snap) {
+      widget.className = snap.cls;
+      if (label) label.innerHTML = snap.label;
+      if (updated) updated.innerHTML = snap.updated;
+      if (strip) strip.innerHTML = snap.strip;
+    }
   }
   function probe() {
     var img = new Image();
