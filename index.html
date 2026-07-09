@@ -98,9 +98,10 @@
     if (n) n.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 250 }); // visibility is class-driven only
   }, true);
 
-  // Hero beacon auto-flip. Snapshot the published status once, swap to a down state while the
-  // site is unreachable, restore the real published status on recovery. gigxchange.app fronts
-  // BOTH the public website and the app, so if the domain is unreachable both are down.
+  // Hero beacon auto-flip. Snapshot the published status once, flip to a website-down state
+  // while the site is unreachable, restore the real published status on recovery. The probe
+  // only tells us the WEBSITE is down; app status is maintained on /status (reachable while the
+  // site is up), so we flag only the Website chip here — never assume the app's state.
   var widget = document.querySelector('.st-widget');
   var label = widget && widget.querySelector('.st-label-big');
   var updated = widget && widget.querySelector('.st-updated');
@@ -112,12 +113,11 @@
     if (!snap) snap = { cls: widget.className, label: label ? label.innerHTML : '', updated: updated ? updated.innerHTML : '', strip: strip ? strip.innerHTML : '' };
     widget.classList.remove('ok', 'issues');
     widget.classList.add('down');
-    if (label) label.textContent = 'Website & app are unavailable';
+    if (label) label.textContent = 'Website is unavailable';
     if (updated) updated.textContent = 'Auto-detected from your browser just now - the team is on it';
-    // flip the Website + App chips red (Payments/Emails stay as published — the probe can't see them)
+    // flip ONLY the Website chip (App/Payments/Emails stay as published — the probe can't see them)
     if (strip) strip.querySelectorAll('.sb-badge').forEach(function (b) {
-      var t = b.textContent || '';
-      if (t.indexOf('Website') > -1 || t.indexOf('App') > -1) {
+      if ((b.textContent || '').indexOf('Website') > -1) {
         b.classList.remove('sb-badge-ice', 'st-badge-warn');
         b.classList.add('st-badge-down');
       }
