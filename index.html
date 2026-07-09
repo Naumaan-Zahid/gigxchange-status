@@ -46,15 +46,15 @@
 			
 			<script>
 				{
-					__sveltekit_apwdzq = {
+					__sveltekit_9jl1p3 = {
 						base: new URL(".", location).pathname.slice(0, -1)
 					};
 
 					const element = document.currentScript.parentElement;
 
 					Promise.all([
-						import("./_website/immutable/entry/start.D5VJxQzg.js"),
-						import("./_website/immutable/entry/app.Df6BXy8z.js")
+						import("./_website/immutable/entry/start.DTlY7LYo.js"),
+						import("./_website/immutable/entry/app.6acaCdYD.js")
 					]).then(([kit, app]) => {
 						kit.start(app, element, {
 							node_ids: [0, 167],
@@ -83,8 +83,10 @@
 <div id="gx-offline-note">GigXchange is unreachable right now &mdash; you're already in the right place. Updates appear on this page.</div>
 <script>
 (function () {
-  // Smart links: probe the site every 30s; while down, site links show the notice instead
-  // of navigating to a dead origin. Re-enables automatically when the site answers again.
+  // Smart links + auto outage state: probe the site every 30s. While it's unreachable we
+  // (a) flip the hero beacon to a red "we can't reach GigXchange" state, and (b) intercept
+  // clicks on gigxchange.app links to show the notice instead of navigating to a dead origin.
+  // Both revert automatically when the site answers again. All browser-side, no infra.
   var ORIGIN = "https://gigxchange.app";
   document.querySelectorAll('a[href^="' + ORIGIN + '"]').forEach(function (a) { a.setAttribute('data-gx-site', '1'); });
   document.addEventListener('click', function (e) {
@@ -95,12 +97,32 @@
     var n = document.getElementById('gx-offline-note');
     if (n) n.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 250 }); // visibility is class-driven only
   }, true);
+
+  // Hero beacon auto-flip. Snapshot the published status once, swap to a down state while the
+  // site is unreachable, restore the real published status on recovery.
+  var widget = document.querySelector('.st-widget');
+  var label = widget && widget.querySelector('.st-label-big');
+  var updated = widget && widget.querySelector('.st-updated');
+  var snap = null;
+  function goOffline() {
+    document.body.classList.add('gx-offline');
+    if (!widget) return;
+    if (!snap) snap = { cls: widget.className, label: label ? label.innerHTML : '', updated: updated ? updated.innerHTML : '' };
+    widget.classList.remove('ok', 'issues');
+    widget.classList.add('down');
+    if (label) label.textContent = "We can't reach GigXchange";
+    if (updated) updated.textContent = 'Auto-detected from your browser just now - the team is on it';
+  }
+  function goOnline() {
+    document.body.classList.remove('gx-offline');
+    if (widget && snap) { widget.className = snap.cls; if (label) label.innerHTML = snap.label; if (updated) updated.innerHTML = snap.updated; }
+  }
   function probe() {
     var img = new Image();
     var done = false;
-    var t = setTimeout(function () { if (!done) { done = true; document.body.classList.add('gx-offline'); } }, 8000);
-    img.onload = function () { if (!done) { done = true; clearTimeout(t); document.body.classList.remove('gx-offline'); } };
-    img.onerror = function () { if (!done) { done = true; clearTimeout(t); document.body.classList.add('gx-offline'); } };
+    var t = setTimeout(function () { if (!done) { done = true; goOffline(); } }, 8000);
+    img.onload = function () { if (!done) { done = true; clearTimeout(t); goOnline(); } };
+    img.onerror = function () { if (!done) { done = true; clearTimeout(t); goOffline(); } };
     img.src = ORIGIN + '/favicon.ico?gx-probe=' + Date.now();
   }
   probe();
